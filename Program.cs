@@ -1,35 +1,45 @@
 using System.Text.Json.Serialization;
 using Documind.Adapters;
+using Documind.Endpoints;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.Google;
+using Microsoft.AspNetCore.Routing.Constraints;
+using Documind.Domain;
 
-// This is the WebApplicationBuilder - it has the .Configuration property
 var builder = WebApplication.CreateSlimBuilder(args);
 
-// 1. Get Key
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
+});
+
+builder.Services.Configure<RouteOptions>(options =>
+    options.SetParameterPolicy<RegexInlineRouteConstraint>("regex"));
+
 string geminiKey = builder.Configuration["Gemini:ApiKey"]
                    ?? throw new Exception("Gemini key not defined");
 
-// 2. Register Kernel Services
 var kernelBuilder = builder.Services.AddKernel();
 
-// REGISTER CHAT (For the "/ask" part later)
-kernelBuilder.AddGoogleAIGeminiChatCompletion(
-    modelId: "gemini-1.5-flash",
-    apiKey: geminiKey);
+builder.Services.AddGoogleAIGeminiChatCompletion(modelId: "gemini-1.5-flash", apiKey: geminiKey);
+builder.Services.AddGoogleAIEmbeddingGenerator(modelId: "text-embedding-004", apiKey: geminiKey);
 
-// REGISTER EMBEDDINGS (Required for "IngestAsync")
-kernelBuilder.AddGoogleAIEmbeddingGenerator(
-    modelId: "text-embedding-004", // Use the specialized embedding model
-    apiKey: geminiKey);
+// kernelBuilder.AddGoogleAIGeminiChatCompletion(
+//     modelId: "gemini-1.5-flash",
+//     apiKey: geminiKey);
 
-// 3. Register Postgres Vector Store
-string connString = "Host=localhost;Port=5432;Database=documind_db;Username=postgres;Password=secret1";
+// kernelBuilder.AddGoogleAIEmbeddingGenerator(
+//     modelId: "text-embedding-004", // Use the specialized embedding model
+//     apiKey: geminiKey);
+
+string connString = builder.Configuration.GetConnectionString("Postgres")
+                    ?? throw new Exception("Postgres connection string not defined");
+
 builder.Services.AddPostgresVectorStore(connString);
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IngestionService>();
 
@@ -37,7 +47,18 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
+app.MapIngestionEndpoints();
+
 app.Run();
+
+[JsonSerializable(typeof(DocumentRecord))]
+[JsonSerializable(typeof(List<DocumentRecord>))]
+[JsonSerializable(typeof(string))]
+[JsonSerializable(typeof(Guid))]
+internal partial class AppJsonSerializerContext : JsonSerializerContext
+{
+}

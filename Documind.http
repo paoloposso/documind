@@ -1,11 +1,8 @@
 @Documind_HostAddress = http://localhost:5231
 
-GET {{Documind_HostAddress}}/todos/
-Accept: application/json
+### Ingest Text
+# @name IngestText
+POST {{Documind_HostAddress}}/api/ingest
+Content-Type: text/plain
 
-###
-
-GET {{Documind_HostAddress}}/todos/1
-Accept: application/json
-
-###
+This is a sample document to be ingested. It can be a long text.

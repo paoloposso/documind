@@ -17,15 +17,22 @@ public class IngestionService(
     {
         var definition = new VectorStoreCollectionDefinition
         {
-            Properties =
-                [
-                    new VectorStoreKeyProperty("Id", typeof(Guid)),
-                    new VectorStoreDataProperty("Content", typeof(string)),
-                    new VectorStoreVectorProperty("Embedding", 768)
-                        {
-                            DistanceFunction = DistanceFunction.CosineSimilarity
-                        }
-                ]
+            Properties = [
+                new VectorStoreKeyProperty("Id", typeof(Guid))
+                {
+                    StorageName = "id"
+                },
+                new VectorStoreDataProperty("Content", typeof(string))
+                {
+                    StorageName = "content"
+                },
+                new VectorStoreVectorProperty("Embedding", typeof(ReadOnlyMemory<float>), 768)
+                {
+                    StorageName = "embedding",
+                    DistanceFunction = DistanceFunction.CosineSimilarity,
+                    IndexKind = IndexKind.Hnsw
+                }
+            ]
         };
 
         var collection = vectorStore.GetCollection<Guid, DocumentRecord>("documents", definition);
