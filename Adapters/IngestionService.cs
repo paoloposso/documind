@@ -26,6 +26,10 @@ public class IngestionService(
                 {
                     StorageName = "content"
                 },
+                new VectorStoreDataProperty("Source", typeof(string))
+                {
+                    StorageName = "source"
+                },
                 new VectorStoreVectorProperty("Embedding", typeof(ReadOnlyMemory<float>), 768)
                 {
                     StorageName = "embedding",
