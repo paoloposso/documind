@@ -1,9 +1,11 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 
-CREATE TABLE IF NOT EXISTS documents (
+DROP TABLE IF EXISTS documents;
+
+CREATE TABLE documents (
     id UUID PRIMARY KEY,
     content TEXT NOT NULL,
-    source TEXT,
+    source TEXT NOT NULL,
     embedding vector(768)
 );
 

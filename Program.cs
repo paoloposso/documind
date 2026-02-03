@@ -22,8 +22,8 @@ string geminiKey = builder.Configuration["Gemini:ApiKey"]
 
 var kernelBuilder = builder.Services.AddKernel();
 
-builder.Services.AddGoogleAIGeminiChatCompletion(modelId: "models/gemini-1.5-flash", apiKey: geminiKey);
-builder.Services.AddGoogleAIEmbeddingGenerator(modelId: "text-embedding-004", apiKey: geminiKey);
+builder.Services.AddGoogleAIGeminiChatCompletion(modelId: "gemini-1.5-flash", apiKey: geminiKey);
+builder.Services.AddGoogleAIEmbeddingGenerator(modelId: "gemini-embedding-001", apiKey: geminiKey);
 
 string connString = builder.Configuration.GetConnectionString("Postgres")
                     ?? throw new Exception("Postgres connection string not defined");
@@ -34,6 +34,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IngestionService>();
+builder.Services.AddScoped<KnowledgeSeeder>();
 
 var app = builder.Build();
 
@@ -44,6 +45,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapIngestionEndpoints();
+app.MapSeedEndpoints();
 
 app.Run();
 

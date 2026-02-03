@@ -13,7 +13,7 @@ public class DocumentRecord
     [VectorStoreData]
     public string Source { get; set; } = "Manual Entry";
 
-    // Gemini embedding-004 output is 768 dimensions
+    // We use 768 to stay under the 2000-dimension HNSW limit
     [VectorStoreVector(Dimensions: 768, DistanceFunction = DistanceFunction.CosineSimilarity)]
     public ReadOnlyMemory<float> Embedding { get; set; }
 }

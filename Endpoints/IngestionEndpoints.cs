@@ -13,14 +13,18 @@ public static class IngestionEndpoints
         // We inject IngestionService directly into the lambda
         group.MapPost("/",
             async Task<Results<BadRequest<string>, Ok<string>>>
-                (string text, IngestionService service) =>
+                (string text, string source, IngestionService service) =>
         {
             if (string.IsNullOrWhiteSpace(text))
             {
                 return TypedResults.BadRequest("Text content cannot be empty.");
             }
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return TypedResults.BadRequest("Source content cannot be empty.");
+            }
 
-            await service.IngestAsync(text);
+            await service.IngestAsync(text, source);
             return TypedResults.Ok("Knowledge ingested successfully.");
         })
         .WithName("IngestText");
