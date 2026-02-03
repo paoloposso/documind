@@ -35,6 +35,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IngestionService>();
 builder.Services.AddScoped<KnowledgeSeeder>();
+builder.Services.AddScoped<SearchService>();
 
 var app = builder.Build();
 
@@ -46,6 +47,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapIngestionEndpoints();
 app.MapSeedEndpoints();
+app.MapSearchEndpoints();
 
 app.Run();
 

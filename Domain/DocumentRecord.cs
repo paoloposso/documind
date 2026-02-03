@@ -4,16 +4,16 @@ namespace Documind.Domain;
 
 public class DocumentRecord
 {
-    [VectorStoreKey]
+    [VectorStoreKey(StorageName = "id")]
     public Guid Id { get; set; }
 
-    [VectorStoreData(IsIndexed = true)]
+    [VectorStoreData(StorageName = "content", IsIndexed = true)]
     public string Content { get; set; } = string.Empty;
 
-    [VectorStoreData]
+    [VectorStoreData(StorageName = "source")]
     public string Source { get; set; } = "Manual Entry";
 
     // We use 768 to stay under the 2000-dimension HNSW limit
-    [VectorStoreVector(Dimensions: 768, DistanceFunction = DistanceFunction.CosineSimilarity)]
+    [VectorStoreVector(768, StorageName = "embedding", DistanceFunction = DistanceFunction.CosineSimilarity)]
     public ReadOnlyMemory<float> Embedding { get; set; }
 }
