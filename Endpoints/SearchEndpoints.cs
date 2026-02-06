@@ -1,4 +1,4 @@
-using Documind.Adapters;
+using Documind.Application;
 using Documind.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -26,3 +26,4 @@ public static class SearchEndpoints
             .WithName("Search");
     }
 }
+

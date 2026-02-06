@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using Documind.Adapters;
+using Documind.Application;
 
 namespace Documind.Endpoints;
 

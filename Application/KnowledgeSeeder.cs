@@ -1,4 +1,4 @@
-namespace Documind.Adapters;
+namespace Documind.Application;
 
 public class KnowledgeSeeder(IngestionService ingestionService)
 {

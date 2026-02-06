@@ -1,11 +1,10 @@
 using System.Text.Json.Serialization;
-using Documind.Adapters;
+using Documind.Application;
 using Documind.Endpoints;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.Google;
 using Microsoft.AspNetCore.Routing.Constraints;
 using Documind.Domain;
+using Documind.Infrastructure;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -33,6 +32,7 @@ builder.Services.AddPostgresVectorStore(connString);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<IDocumentRepository, VectorStoreDocumentRepository>();
 builder.Services.AddScoped<IngestionService>();
 builder.Services.AddScoped<KnowledgeSeeder>();
 builder.Services.AddScoped<SearchService>();
