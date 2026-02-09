@@ -5,7 +5,7 @@ namespace Documind.Application;
 
 public class SearchService(
     IEmbeddingGenerator<string, Embedding<float>> embeddingService,
-    IDocumentRepository documentRepository)
+    IDocumentRepository documentRepository) : ISearchService
 {
     public async Task<List<DocumentRecord>> SearchAsync(string userQuery)
     {

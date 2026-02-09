@@ -21,7 +21,7 @@ string geminiKey = builder.Configuration["Gemini:ApiKey"]
 
 var kernelBuilder = builder.Services.AddKernel();
 
-builder.Services.AddGoogleAIGeminiChatCompletion(modelId: "gemini-1.5-flash", apiKey: geminiKey);
+builder.Services.AddGoogleAIGeminiChatCompletion(modelId: "gemini-2.5-flash", apiKey: geminiKey);
 builder.Services.AddGoogleAIEmbeddingGenerator(modelId: "gemini-embedding-001", apiKey: geminiKey);
 
 string connString = builder.Configuration.GetConnectionString("Postgres")
@@ -36,6 +36,8 @@ builder.Services.AddScoped<IDocumentRepository, VectorStoreDocumentRepository>()
 builder.Services.AddScoped<IngestionService>();
 builder.Services.AddScoped<KnowledgeSeeder>();
 builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<IAskService, AskService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
 
 var app = builder.Build();
 
@@ -48,6 +50,7 @@ if (app.Environment.IsDevelopment())
 app.MapIngestionEndpoints();
 app.MapSeedEndpoints();
 app.MapSearchEndpoints();
+app.MapAskEndpoints();
 
 app.Run();
 

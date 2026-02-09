@@ -4,5 +4,19 @@
 # @name IngestText
 POST {{Documind_HostAddress}}/api/ingest
 Content-Type: text/plain
+source: sample-source
 
 This is a sample document to be ingested. It can be a long text.
+
+### Search
+# @name Search
+GET {{Documind_HostAddress}}/api/search?query=sample%20query
+
+### Seed Data
+# @name SeedData
+POST {{Documind_HostAddress}}/api/seed
+Content-Type: application/json
+
+### Ask
+# @name Ask
+GET {{Documind_HostAddress}}/api/ask?question=What%20is%20Documind%3F

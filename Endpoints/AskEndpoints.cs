@@ -1,0 +1,28 @@
+using Documind.Application;
+using Documind.Domain;
+using Microsoft.AspNetCore.Http.HttpResults;
+
+namespace Documind.Endpoints;
+
+public static class AskEndpoints
+{
+    public static void MapAskEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/api/ask")
+                       .WithTags("Ask");
+
+        group.MapGet("/",
+            async Task<Results<BadRequest<string>, Ok<string>>>
+                (string question, IAskService service) =>
+        {
+            if (string.IsNullOrWhiteSpace(question))
+            {
+                return TypedResults.BadRequest("Question cannot be empty.");
+            }
+
+            var answer = await service.Ask(question);
+            return TypedResults.Ok(answer);
+        })
+        .WithName("Ask");
+    }
+}
