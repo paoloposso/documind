@@ -36,7 +36,9 @@ public class AskService : IAskService
         chatHistory.AddUserMessage($"Context:\n{context}\n\nQuestion: {question}");
 
         // 3. Generate Answer using LLM
-        // Temporarily return the context to debug document relevance
-        return await Task.FromResult(context);
+        var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
+        var result = await chatCompletionService.GetChatMessageContentAsync(chatHistory);
+
+        return result.Content ?? "I could not generate an answer based on the provided information.";
     }
 }
