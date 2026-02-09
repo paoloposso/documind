@@ -4,7 +4,7 @@ Documind is a document intelligence system built with .NET, designed to ingest, 
 
 ## Technical Stack & Architecture
 
-- **Backend:** C# / .NET 8 (ASP.NET Core)
+- **Backend:** C# / .NET 10 (ASP.NET Core)
 - **AI Integration:** Microsoft Semantic Kernel for orchestrating LLM interactions and embedding generation.
 - **Vector Database:** Qdrant (or similar vector store) for storing document embeddings and performing semantic search.
 - **Relational Database:** PostgreSQL for managing document metadata and application-specific data.

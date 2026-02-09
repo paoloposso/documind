@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using Documind.Domain;
+using Documind.Application.Abstractions;
 
 namespace Documind.Application;
 

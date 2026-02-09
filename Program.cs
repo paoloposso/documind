@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.AspNetCore.Routing.Constraints;
 using Documind.Domain;
 using Documind.Infrastructure;
+using Documind.Application.Abstractions;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 

@@ -1,3 +1,4 @@
+using Documind.Application.Abstractions;
 using Documind.Domain;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
