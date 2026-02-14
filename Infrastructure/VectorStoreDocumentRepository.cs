@@ -45,7 +45,7 @@ public class VectorStoreDocumentRepository(VectorStore vectorStore) : IDocumentR
             VectorProperty = r => r.Embedding
         };
 
-        var searchResult = collection.SearchAsync<ReadOnlyMemory<float>>(
+        var searchResult = collection.SearchAsync(
             embedding,
             limit,
             searchOptions);

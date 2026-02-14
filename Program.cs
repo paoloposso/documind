@@ -34,9 +34,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IDocumentRepository, VectorStoreDocumentRepository>();
-builder.Services.AddScoped<IngestionService>();
-builder.Services.AddScoped<KnowledgeSeeder>();
-builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<IIngestionService, IngestionService>();
+builder.Services.AddScoped<IKnowledgeSeeder, KnowledgeSeeder>();
 builder.Services.AddScoped<IAskService, AskService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 

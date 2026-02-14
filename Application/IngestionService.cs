@@ -1,12 +1,13 @@
 using Microsoft.Extensions.AI;
 using Documind.Domain;
 using System.Diagnostics.CodeAnalysis;
+using Documind.Application.Abstractions;
 
 namespace Documind.Application;
 
 public class IngestionService(
     IEmbeddingGenerator<string, Embedding<float>> embeddingService,
-    IDocumentRepository documentRepository)
+    IDocumentRepository documentRepository) : IIngestionService
 {
     public async Task IngestAsync(string text, string source)
     {

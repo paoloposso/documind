@@ -1,6 +1,8 @@
+using Documind.Application.Abstractions;
+
 namespace Documind.Application;
 
-public class KnowledgeSeeder(IngestionService ingestionService)
+public class KnowledgeSeeder(IIngestionService ingestionService) : IKnowledgeSeeder
 {
     public async Task SeedAsync()
     {

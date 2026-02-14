@@ -1,6 +1,8 @@
 using Documind.Application;
+using Documind.Application.Abstractions;
 using Documind.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc; // Add this using directive
 
 namespace Documind.Endpoints;
 
@@ -12,18 +14,16 @@ public static class SearchEndpoints
             .WithTags("Search");
 
         group.MapGet("/",
-                async Task<Results<BadRequest<string>, Ok<List<DocumentRecord>>>>
-                    (string query, SearchService service) =>
+                async Task<IResult>
+                    ([FromQuery] string query, [FromServices] ISearchService service) =>
                 {
                     if (string.IsNullOrWhiteSpace(query))
                     {
                         return TypedResults.BadRequest("Query cannot be empty.");
                     }
 
-                    var results = await service.SearchAsync(query);
-                    return TypedResults.Ok(results);
+                    return TypedResults.Ok(service.SearchAsync(query));
                 })
             .WithName("Search");
     }
 }
-

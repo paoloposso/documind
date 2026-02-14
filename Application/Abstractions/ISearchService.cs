@@ -4,5 +4,5 @@ namespace Documind.Application.Abstractions;
 
 public interface ISearchService
 {
-    Task<List<DocumentRecord>> SearchAsync(string userQuery);
+    IAsyncEnumerable<DocumentRecord> SearchAsync(string userQuery);
 }

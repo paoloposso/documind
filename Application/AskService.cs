@@ -5,23 +5,19 @@ using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace Documind.Application;
 
-public class AskService : IAskService
+public class AskService(ISearchService searchService, IChatCompletionService chatCompletionService) : IAskService
 {
-    private readonly ISearchService _searchService;
-    private readonly IDocumentRepository _documentRepository; // May not be directly used here if SearchService handles all retrieval
-    private readonly Kernel _kernel; // Inject Semantic Kernel
+    private readonly ISearchService _searchService = searchService;
+    private readonly IChatCompletionService _chatCompletionService = chatCompletionService;
 
-    public AskService(ISearchService searchService, IDocumentRepository documentRepository, Kernel kernel)
+    public async Task<string> AskAsync(string question)
     {
-        _searchService = searchService;
-        _documentRepository = documentRepository;
-        _kernel = kernel;
-    }
+        List<DocumentRecord> relevantDocuments = [];
 
-    public async Task<string> Ask(string question)
-    {
-        // 1. Retrieve Relevant Information using SearchService
-        var relevantDocuments = await _searchService.SearchAsync(question);
+        await foreach (var document in _searchService.SearchAsync(question))
+        {
+            relevantDocuments.Add(document);
+        }
 
         if (relevantDocuments.Count == 0)
         {
@@ -37,8 +33,8 @@ public class AskService : IAskService
         chatHistory.AddUserMessage($"Context:\n{context}\n\nQuestion: {question}");
 
         // 3. Generate Answer using LLM
-        var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
-        var result = await chatCompletionService.GetChatMessageContentAsync(chatHistory);
+
+        var result = await _chatCompletionService.GetChatMessageContentAsync(chatHistory);
 
         return result.Content ?? "I could not generate an answer based on the provided information.";
     }

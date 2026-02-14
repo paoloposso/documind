@@ -8,7 +8,7 @@ public class SearchService(
     IEmbeddingGenerator<string, Embedding<float>> embeddingService,
     IDocumentRepository documentRepository) : ISearchService
 {
-    public async Task<List<DocumentRecord>> SearchAsync(string userQuery)
+    public async IAsyncEnumerable<DocumentRecord> SearchAsync(string userQuery)
     {
         var options = new EmbeddingGenerationOptions
         {
@@ -23,13 +23,9 @@ public class SearchService(
             vector = vector[..768];
         }
 
-        var results = new List<DocumentRecord>();
-
         await foreach (var result in documentRepository.SearchAsync(vector, 3))
         {
-            results.Add(result);
+            yield return result;
         }
-
-        return results;
     }
 }

@@ -1,4 +1,5 @@
 using Documind.Application;
+using Documind.Application.Abstractions;
 using Documind.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -20,7 +21,7 @@ public static class AskEndpoints
                 return TypedResults.BadRequest("Question cannot be empty.");
             }
 
-            var answer = await service.Ask(question);
+            var answer = await service.AskAsync(question);
             return TypedResults.Ok(answer);
         })
         .WithName("Ask");
