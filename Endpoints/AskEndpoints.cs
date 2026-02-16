@@ -13,16 +13,15 @@ public static class AskEndpoints
                        .WithTags("Ask");
 
         group.MapGet("/",
-            async Task<Results<BadRequest<string>, Ok<string>>>
-                (string question, IAskService service) =>
+            async Task<Results<BadRequest<string>, Ok<IAsyncEnumerable<string>>>>
+                (string question, IAskService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(question))
             {
                 return TypedResults.BadRequest("Question cannot be empty.");
             }
 
-            var answer = await service.AskAsync(question);
-            return TypedResults.Ok(answer);
+            return TypedResults.Ok(service.AskStreamingAsync(question, ct));
         })
         .WithName("Ask");
     }

@@ -14,7 +14,10 @@ public static class SearchEndpoints
             .WithTags("Search");
 
         group.MapGet("/",
-                async Task<IResult>
+                async Task<Results<
+                        BadRequest<string>,
+                        Ok<IAsyncEnumerable<DocumentRecord>>
+                    >>
                     ([FromQuery] string query, [FromServices] ISearchService service) =>
                 {
                     if (string.IsNullOrWhiteSpace(query))

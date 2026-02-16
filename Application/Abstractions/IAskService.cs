@@ -2,5 +2,5 @@ namespace Documind.Application.Abstractions;
 
 public interface IAskService
 {
-    Task<string> AskAsync(string question);
+    IAsyncEnumerable<string> AskStreamingAsync(string question, CancellationToken ct = default);
 }
