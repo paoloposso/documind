@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Documind.Application.Abstractions;
 using Documind.Domain;
-using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace Documind.Application;
@@ -11,7 +10,9 @@ public class AskService(ISearchService searchService, IChatCompletionService cha
     private readonly ISearchService _searchService = searchService;
     private readonly IChatCompletionService _chatCompletionService = chatCompletionService;
 
-    public async IAsyncEnumerable<string> AskStreamingAsync(string question, [EnumeratorCancellation] CancellationToken ct = default)
+    public async IAsyncEnumerable<string> AskStreamingAsync(
+        string question,
+        [EnumeratorCancellation] CancellationToken ct = default)
     {
         List<DocumentRecord> relevantDocuments = [];
 

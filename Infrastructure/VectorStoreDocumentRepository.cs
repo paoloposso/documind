@@ -29,11 +29,11 @@ public class VectorStoreDocumentRepository(VectorStore vectorStore) : IDocumentR
         return vectorStore.GetCollection<Guid, DocumentRecord>("documents", definition);
     }
 
-    public async Task AddAsync(DocumentRecord record)
+    public async Task AddAsync(DocumentRecord record, CancellationToken ct = default)
     {
         var collection = GetDocumentCollection();
-        await collection.EnsureCollectionExistsAsync();
-        await collection.UpsertAsync(record);
+        await collection.EnsureCollectionExistsAsync(ct);
+        await collection.UpsertAsync(record, ct);
     }
 
     public async IAsyncEnumerable<DocumentRecord> SearchAsync(ReadOnlyMemory<float> embedding, int limit)

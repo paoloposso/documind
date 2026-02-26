@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Documind.Domain;
 
 namespace Documind.Application.Abstractions;

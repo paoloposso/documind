@@ -1,6 +1,4 @@
-using Documind.Application;
 using Documind.Application.Abstractions;
-using Documind.Domain;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Documind.Endpoints;

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.AI;
 using Documind.Domain;
-using System.Diagnostics.CodeAnalysis;
 using Documind.Application.Abstractions;
 
 namespace Documind.Application;
@@ -9,7 +8,7 @@ public class IngestionService(
     IEmbeddingGenerator<string, Embedding<float>> embeddingService,
     IDocumentRepository documentRepository) : IIngestionService
 {
-    public async Task IngestAsync(string text, string source)
+    public async Task IngestAsync(string text, string source, CancellationToken ct = default)
     {
         var options = new EmbeddingGenerationOptions
         {
@@ -19,7 +18,7 @@ public class IngestionService(
         };
 
         // 1. This exists and returns ReadOnlyMemory<float>
-        var vector = await embeddingService.GenerateVectorAsync(text, options);
+        var vector = await embeddingService.GenerateVectorAsync(text, options, ct);
 
         // 2. MANUAL SLICE: 
         // If the API ignored the '768' request and sent 3072, we slice it here.
@@ -37,6 +36,6 @@ public class IngestionService(
             Source = source
         };
 
-        await documentRepository.AddAsync(record);
+        await documentRepository.AddAsync(record, ct);
     }
 }

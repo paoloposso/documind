@@ -38,6 +38,7 @@ builder.Services.AddScoped<IIngestionService, IngestionService>();
 builder.Services.AddScoped<IKnowledgeSeeder, KnowledgeSeeder>();
 builder.Services.AddScoped<IAskService, AskService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IFileIngestionService, FileIngestionService>();
 
 var app = builder.Build();
 
@@ -51,6 +52,7 @@ app.MapIngestionEndpoints();
 app.MapSeedEndpoints();
 app.MapSearchEndpoints();
 app.MapAskEndpoints();
+app.MapFileIngestionEndpoints();
 
 app.Run();
 
