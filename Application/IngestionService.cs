@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using Documind.Domain;
 using Documind.Application.Abstractions;
+using System.Linq;
 
 namespace Documind.Application;
 
@@ -10,32 +11,45 @@ public class IngestionService(
 {
     public async Task IngestAsync(string text, string source, CancellationToken ct = default)
     {
+        await IngestBatchAsync([(text, source)], ct);
+    }
+
+    public async Task IngestBatchAsync(IEnumerable<(string Text, string Source)> chunks, CancellationToken ct = default)
+    {
         var options = new EmbeddingGenerationOptions
         {
             Dimensions = 768,
-            // We keep this as 'AdditionalProperties' as a hint to the provider
             AdditionalProperties = new() { { "task_type", "RETRIEVAL_DOCUMENT" } }
         };
 
-        // 1. This exists and returns ReadOnlyMemory<float>
-        var vector = await embeddingService.GenerateVectorAsync(text, options, ct);
+        var chunkList = chunks.ToList();
+        if (chunkList.Count == 0) return;
 
-        // 2. MANUAL SLICE: 
-        // If the API ignored the '768' request and sent 3072, we slice it here.
-        // This is the only way to guarantee Postgres won't throw a 22000 error.
-        if (vector.Length > 768)
+        var texts = chunkList.Select(c => c.Text).ToList();
+        var embeddings = await embeddingService.GenerateAsync(texts, options, ct);
+
+        var records = new List<DocumentRecord>();
+        for (int i = 0; i < chunkList.Count; i++)
         {
-            vector = vector[..768];
+            var vector = embeddings[i].Vector;
+            if (vector.Length > 768)
+            {
+                vector = vector[..768];
+            }
+
+            records.Add(new DocumentRecord
+            {
+                Id = Guid.NewGuid(),
+                Content = chunkList[i].Text,
+                Embedding = vector,
+                Source = chunkList[i].Source
+            });
         }
 
-        var record = new DocumentRecord
+        // We should add a BatchAddAsync to IDocumentRepository for even better performance
+        foreach (var record in records)
         {
-            Id = Guid.NewGuid(),
-            Content = text,
-            Embedding = vector, // This is now guaranteed to be 768
-            Source = source
-        };
-
-        await documentRepository.AddAsync(record, ct);
+            await documentRepository.AddAsync(record, ct);
+        }
     }
 }

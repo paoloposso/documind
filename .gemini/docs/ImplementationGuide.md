@@ -29,39 +29,53 @@ User Request -> Endpoints -> Application Service -> Domain Interface -> Infrastr
 
 ### 3.1. File Ingestion
 
-The process of adding new knowledge to the system involves generating an embedding for the content and storing it in the document repository.
+The process of adding knowledge from files is handled asynchronously to ensure a responsive user experience and efficient processing.
 
-**Steps:**
+**Overview:**
+Documind uses a **Background Service** architecture combined with **Redis** for state tracking. This prevents long-running ingestion tasks (like parsing a large book) from blocking the API.
 
-1.  **Receive Content:** The `IngestionService` receives raw `text` and its `source` (e.g., from an endpoint).
-2.  **Generate Embedding:**
-    *   The `IngestionService` uses an `IEmbeddingGenerator<string, Embedding<float>>` (e.g., provided by `Microsoft.Extensions.AI`) to convert the text content into a numerical vector (embedding).
-    *   It specifies `Dimensions` (e.g., 768) and `task_type` (`RETRIEVAL_DOCUMENT`) to guide the embedding model.
-    *   A manual slicing step (`if (vector.Length > 768) { vector = vector[..768]; }`) ensures the embedding vector matches the expected dimension for the underlying vector store (e.g., PostgreSQL with `pgvector`).
-3.  **Create Document Record:** A `DocumentRecord` object is created, encapsulating the `Id`, `Content`, generated `Embedding`, and `Source`.
-4.  **Store Document:** The `IngestionService` then uses an `IDocumentRepository` (e.g., `VectorStoreDocumentRepository`) to persist the `DocumentRecord` into the chosen data store (e.g., PostgreSQL with `pgvector`).
+**Architecture Components:**
+*   **`FileIngestionService`:** Orchestrates the ingestion. It saves uploaded files to a temporary location, generates a `JobId`, and queues an `IngestionJob`.
+*   **`IngestionJobQueue`:** A `System.Threading.Channels` based queue that manages the flow of work between the API and the background worker.
+*   **`IngestionBackgroundService`:** A hosted worker that continuously dequeues jobs and processes them sequentially.
+*   **`RedisJobStatusService`:** Stores the current status of ingestion jobs (Pending, Processing, Completed, Failed). Redis is used for its **TTL (Time-To-Live)** feature, ensuring that ephemeral job statuses are automatically cleaned up after 24 hours.
+
+**Processing Steps:**
+1.  **Queue Job:** The user uploads a file. The API returns a `202 Accepted` with a `JobId` immediately.
+2.  **Extract & Chunk:** The background worker uses **Apache Tika** to extract text and a streaming `IEnumerable` chunker to break the text into manageable pieces (e.g., 512 characters).
+3.  **Batch Embedding:** Chunks are processed in **batches** (e.g., 10 at a time) to minimize network overhead when calling the AI Embedding API.
+4.  **Store:** Generated vector embeddings and raw content are stored in PostgreSQL using `pgvector`.
+5.  **Clean up:** The temporary file is deleted, and the job status in Redis is updated to `Completed`.
 
 **Components Involved:**
-
-*   `IngestionService` (Application Layer)
-*   `IIngestionService` (Application/Abstractions - *to be created*)
-*   `IEmbeddingGenerator` (from `Microsoft.Extensions.AI`)
+*   `FileIngestionService` (Application Layer)
+*   `IngestionBackgroundService` (Background Worker)
+*   `IngestionJobQueue` (Messaging)
+*   `RedisJobStatusService` (Job Tracking)
+*   `IIngestionService` (Batch Processing logic)
 *   `IDocumentRepository` (Domain Layer)
 *   `VectorStoreDocumentRepository` (Infrastructure Layer)
-*   `DocumentRecord` (Domain Layer)
-*   `IngestionEndpoints` (Endpoints Layer)
+*   `FileIngestionEndpoints` (Endpoints Layer)
 
-### 3.2. Question Answering
+### 3.2. Batch Ingestion Performance
+
+To optimize throughput, `IIngestionService.IngestBatchAsync` is used. This allows the application to send multiple text chunks in a single request to the embedding generator, which is significantly faster than sequential single-chunk requests.
+
+### 3.3. Question Answering
 
 *(To be elaborated later)*
 
-### 3.3. Knowledge Seeding
+### 3.4. Knowledge Seeding
 
 *(To be elaborated later)*
 
 ## 4. Tooling and Libraries
 
 *   **ASP.NET Core Minimal APIs:** Used for building lightweight web APIs with minimal boilerplate.
+*   **Redis:** Used for tracking ephemeral ingestion job states with automatic 24-hour expiration.
+*   **System.Threading.Channels:** Provides an efficient, thread-safe producer-consumer queue for background work.
+*   **High-Performance Logging:** Uses `.NET Source Generators` (`[LoggerMessage]`) to minimize allocations and maximize performance in high-throughput services.
 *   **Semantic Kernel (`Microsoft.SemanticKernel`):** An SDK for integrating Large Language Models (LLMs) with traditional programming languages. Used for orchestrating AI interactions, chat completion, and potentially planning.
 *   **Microsoft.Extensions.AI:** Provides abstractions for AI components, including `IEmbeddingGenerator`.
 *   **`pgvector` for PostgreSQL:** A PostgreSQL extension that enables efficient storage and similarity search of vector embeddings.
+

@@ -72,3 +72,9 @@ After starting the application, you can seed initial knowledge into the system. 
     curl -X POST "http://localhost:5000/seed"
     ```
     Or visit the Swagger UI and execute the `/seed` endpoint.
+
+### Checking DB
+
+```shell
+docker exec -it documind-db psql -U postgres -d documind_db -c "SELECT source, count(*) FROM documents GROUP BY source;"
+```

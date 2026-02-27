@@ -27,9 +27,52 @@ Ingests new text content into the knowledge base.
 
 ---
 
-## 2. Search Endpoints
+## 2. File Ingestion Endpoints
 
-### 2.1 Search
+### 2.1 Ingest File
+
+Asynchronously ingests a file (PDF, Word, etc.) into the knowledge base.
+
+*   **Method:** `POST`
+*   **Path:** `/api/ingest-file`
+*   **Description:** Uploads a file for background processing. Returns a `JobId` that can be used to track progress.
+*   **Parameters:**
+    *   `file` (IFormFile): The file to upload (e.g., PDF, DOCX, TXT).
+*   **Response:** `202 Accepted` with a `Guid` (JobId).
+*   **Example Usage:**
+    ```http
+    POST {{Documind_HostAddress}}/api/ingest-file
+    Content-Type: multipart/form-data; boundary=boundary
+
+    --boundary
+    Content-Disposition: form-data; name="file"; filename="sample.pdf"
+    Content-Type: application/pdf
+
+    <binary content here>
+    --boundary--
+    ```
+
+### 2.2 Get Ingestion Status
+
+Retrieves the current status of a background ingestion job.
+
+*   **Method:** `GET`
+*   **Path:** `/api/ingest-file/status/{jobId}`
+*   **Description:** Returns the status of the job from Redis. Statuses are stored for 24 hours.
+*   **Parameters:**
+    *   `jobId` (Guid): The identifier returned by the Ingest File endpoint.
+*   **Response:** `200 Ok` with a `JobStatusResponse` object.
+    *   `Status`: `Pending`, `Processing`, `Completed`, or `Failed`.
+*   **Example Usage:**
+    ```http
+    GET {{Documind_HostAddress}}/api/ingest-file/status/{{jobId}}
+    ```
+
+---
+
+## 3. Search Endpoints
+
+### 3.1 Search
 
 Searches the knowledge base for documents relevant to a given query.
 
@@ -45,9 +88,9 @@ Searches the knowledge base for documents relevant to a given query.
 
 ---
 
-## 3. Seed Endpoints
+## 4. Seed Endpoints
 
-### 3.1 Seed Data
+### 4.1 Seed Data
 
 Triggers the seeding of initial knowledge into the system.
 
@@ -63,9 +106,9 @@ Triggers the seeding of initial knowledge into the system.
 
 ---
 
-## 4. Ask Endpoints
+## 5. Ask Endpoints
 
-### 4.1 Ask
+### 5.1 Ask
 
 Asks a question to the knowledge base and receives an answer.
 

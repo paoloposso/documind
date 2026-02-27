@@ -1,76 +1,160 @@
 using Documind.Application.Abstractions;
+using Documind.Application.Models;
 using System.Text.RegularExpressions;
-using TikaOnDotNet.TextExtraction;
+using org.apache.tika.metadata;
+using org.apache.tika.parser;
+using org.apache.tika.sax;
+using org.apache.tika;
+using ikvm.io;
 
-namespace Documind.Application
+namespace Documind.Application;
+
+public partial class FileIngestionService(
+    IIngestionService ingestionService,
+    IIngestionJobQueue jobQueue,
+    IJobStatusService jobStatusService,
+    ILogger<FileIngestionService> logger) : IFileIngestionService
 {
-    public partial class FileIngestionService(IIngestionService ingestionService) : IFileIngestionService
+    private readonly IIngestionService _ingestionService = ingestionService;
+    private readonly IIngestionJobQueue _jobQueue = jobQueue;
+    private readonly IJobStatusService _jobStatusService = jobStatusService;
+    private readonly ILogger<FileIngestionService> _logger = logger;
+    private const int MaxChunkSize = 512;
+    private const int Overlap = 128;
+    private const int BatchSize = 10;
+
+    public async Task<Guid> QueueIngestionAsync(IFormFile file, CancellationToken ct = default)
     {
-        private readonly IIngestionService _ingestionService = ingestionService;
-        private const int MaxChunkSize = 512;
-        private const int Overlap = 128;
+        var jobId = Guid.NewGuid();
+        var tempPath = Path.Combine(Path.GetTempPath(), $"{jobId}_{file.FileName}");
 
-        public async Task IngestFileAsync(IFormFile file, CancellationToken ct = default)
+        LogQueuingIngestion(_logger, file.FileName, jobId);
+
+        await using (var stream = new FileStream(tempPath, FileMode.Create))
         {
-            await using var stream = file.OpenReadStream();
-            var text = await ExtractTextAsync(stream);
-
-            var chunks = ChunkText(text, MaxChunkSize, Overlap);
-
-            for (var i = 0; i < chunks.Count; i++)
-            {
-                var chunk = chunks[i];
-                var source = $"{file.FileName}#chunk-{i + 1}";
-                await _ingestionService.IngestAsync(chunk, source, ct);
-            }
+            await file.CopyToAsync(stream, ct);
         }
 
-        private static async Task<string> ExtractTextAsync(Stream stream)
-        {
-            using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-            var bytes = memoryStream.ToArray();
+        var job = new IngestionJob(jobId, file.FileName, tempPath);
+        var status = new JobStatusResponse(jobId, file.FileName, JobStatus.Pending);
 
-            var textExtractor = new TextExtractor();
-            var result = await Task.Run(() => textExtractor.Extract(bytes));
-            return result.Text;
-        }
+        await _jobStatusService.SetStatusAsync(jobId, status, ct);
+        await _jobQueue.EnqueueAsync(job);
 
-        private static List<string> ChunkText(string text, int chunkSize, int overlap)
+        return jobId;
+    }
+
+    public async Task ProcessFileAsync(Guid jobId, string filePath, string originalFileName, CancellationToken ct = default)
+    {
+        LogProcessingJob(_logger, jobId, originalFileName);
+
+        try
         {
-            var chunks = new List<string>();
+            await _jobStatusService.SetStatusAsync(jobId, new JobStatusResponse(jobId, originalFileName, JobStatus.Processing), ct);
+
+            var text = await ExtractTextAsync(filePath);
+
             if (string.IsNullOrWhiteSpace(text))
             {
-                return chunks;
+                throw new InvalidOperationException("No text could be extracted from the file. It might be empty, encrypted, or require OCR.");
             }
 
-            var sentences = MyRegex().Split(text).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+            LogExtractedText(_logger, jobId, text.Length);
 
-            var currentChunk = "";
-            for (int i = 0; i < sentences.Count; i++)
+            var chunkIndex = 1;
+            var chunkTuples = ChunkText(text, MaxChunkSize, Overlap)
+                .Select(chunk => (Text: chunk, Source: $"{originalFileName}#chunk-{chunkIndex++}"));
+
+            foreach (var batch in chunkTuples.Chunk(BatchSize))
             {
-                var sentence = sentences[i];
-                if (currentChunk.Length + sentence.Length > chunkSize && currentChunk.Length > 0)
-                {
-                    chunks.Add(currentChunk);
+                LogIngestingBatch(_logger, jobId, batch.Length);
+                await _ingestionService.IngestBatchAsync(batch, ct);
+            }
 
-                    var words = currentChunk.Split(new[] { ' ', '\t', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                    var overlapWords = words.Skip(Math.Max(0, words.Length - overlap));
-                    currentChunk = string.Join(" ", overlapWords) + " ";
+            await _jobStatusService.SetStatusAsync(jobId, new JobStatusResponse(jobId, originalFileName, JobStatus.Completed), ct);
+            LogCompletedJob(_logger, jobId, chunkIndex - 1);
+        }
+        catch (Exception ex)
+        {
+            LogFailedJob(_logger, ex, jobId, ex.Message);
+            await _jobStatusService.SetStatusAsync(jobId, new JobStatusResponse(jobId, originalFileName, JobStatus.Failed, ex.Message), ct);
+        }
+        finally
+        {
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
+    }
+
+    private async Task<string> ExtractTextAsync(string filePath)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var tika = new Tika();
+                var file = new java.io.File(filePath);
+                
+                var fileInfo = new FileInfo(filePath);
+                _logger.LogInformation("Attempting to extract text from {FilePath} (Size: {Size} bytes)", filePath, fileInfo.Length);
+
+                var contentType = tika.detect(file);
+                _logger.LogInformation("Tika detected content type: {ContentType}", contentType);
+
+                var text = tika.parseToString(file);
+                
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    _logger.LogWarning("Tika returned empty text for {ContentType} file", contentType);
+                }
+                else
+                {
+                    _logger.LogInformation("Successfully extracted {Length} characters", text.Length);
                 }
 
-                currentChunk += sentence + " ";
+                return text;
             }
-
-            if (!string.IsNullOrWhiteSpace(currentChunk))
+            catch (Exception ex)
             {
-                chunks.Add(currentChunk.Trim());
+                _logger.LogError(ex, "Tika parsing failed for file: {FilePath}", filePath);
+                throw;
             }
+        });
+    }
 
-            return chunks;
+
+    private static IEnumerable<string> ChunkText(string text, int chunkSize, int overlap)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            yield break;
         }
 
-        [GeneratedRegex(@"(?<=[\.!\?])\s+")]
-        private static partial Regex MyRegex();
+        var sentences = MyRegex().Split(text).Where(s => !string.IsNullOrWhiteSpace(s));
+
+        var currentChunk = "";
+        foreach (var sentence in sentences)
+        {
+            if (currentChunk.Length + sentence.Length > chunkSize && currentChunk.Length > 0)
+            {
+                yield return currentChunk.Trim();
+
+                var words = currentChunk.Split(new[] { ' ', '\t', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                var overlapWords = words.Skip(Math.Max(0, words.Length - overlap));
+                currentChunk = string.Join(" ", overlapWords) + " ";
+            }
+
+            currentChunk += sentence + " ";
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentChunk))
+        {
+            yield return currentChunk.Trim();
+        }
     }
+
+    [GeneratedRegex(@"(?<=[\.!\?])\s+")]
+    private static partial Regex MyRegex();
 }

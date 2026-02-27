@@ -6,8 +6,9 @@ using Microsoft.AspNetCore.Routing.Constraints;
 using Documind.Domain;
 using Documind.Infrastructure;
 using Documind.Application.Abstractions;
+using Documind.Application.Models;
 
-var builder = WebApplication.CreateSlimBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -40,6 +41,17 @@ builder.Services.AddScoped<IAskService, AskService>();
 builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IFileIngestionService, FileIngestionService>();
 
+string redisConnString = builder.Configuration.GetConnectionString("Redis")
+                         ?? "localhost:6379";
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnString;
+});
+
+builder.Services.AddSingleton<IIngestionJobQueue, IngestionJobQueue>();
+builder.Services.AddScoped<IJobStatusService, RedisJobStatusService>();
+builder.Services.AddHostedService<IngestionBackgroundService>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -60,6 +72,7 @@ app.Run();
 [JsonSerializable(typeof(List<DocumentRecord>))]
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(Guid))]
+[JsonSerializable(typeof(JobStatusResponse))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 }

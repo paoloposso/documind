@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <InvariantGlobalization>false</InvariantGlobalization>
     <UserSecretsId>7fc59a07-88af-44b2-a45b-529421392145</UserSecretsId>
     <NoWarn>NU1701</NoWarn>
   </PropertyGroup>
@@ -15,13 +15,20 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.3" />
     <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" Version="9.7.0" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.71.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Google" Version="1.70.0-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.PgVector" Version="1.64.0-preview" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.3" />
-    <PackageReference Include="TikaOnDotnet.TextExtractor" Version="1.17.1" />
+    <PackageReference Include="IKVM.Maven.Sdk" Version="1.11.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <MavenReference Include="org.apache.tika:tika-core" Version="2.4.1" />
+    <MavenReference Include="org.apache.tika:tika-parsers-standard-package" Version="2.4.1" />
+    <MavenReference Include="org.slf4j:slf4j-simple" Version="2.0.9" />
   </ItemGroup>
 
   <ItemGroup>
