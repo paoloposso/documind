@@ -4,4 +4,5 @@ public interface IDocumentRepository
 {
     Task AddAsync(DocumentRecord record, CancellationToken ct = default);
     IAsyncEnumerable<DocumentRecord> SearchAsync(ReadOnlyMemory<float> embedding, int limit);
+    Task DeleteBySourcePrefixAsync(string sourcePrefix, CancellationToken ct = default);
 }

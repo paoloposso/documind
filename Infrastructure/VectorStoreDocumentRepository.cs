@@ -1,11 +1,14 @@
 using Documind.Domain;
 using Microsoft.Extensions.VectorData;
 using System.Diagnostics.CodeAnalysis;
+using Npgsql;
 
 namespace Documind.Infrastructure;
 
-public class VectorStoreDocumentRepository(VectorStore vectorStore) : IDocumentRepository
+public class VectorStoreDocumentRepository(VectorStore vectorStore, NpgsqlDataSource dataSource) : IDocumentRepository
 {
+    private readonly NpgsqlDataSource _dataSource = dataSource;
+
     [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
         Justification = "We are providing a manual VectorStoreCollectionDefinition, so reflection is not required.")]
     [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
@@ -34,6 +37,16 @@ public class VectorStoreDocumentRepository(VectorStore vectorStore) : IDocumentR
         var collection = GetDocumentCollection();
         await collection.EnsureCollectionExistsAsync(ct);
         await collection.UpsertAsync(record, ct);
+    }
+
+    public async Task DeleteBySourcePrefixAsync(string sourcePrefix, CancellationToken ct = default)
+    {
+        const string sql = "DELETE FROM documents WHERE source LIKE @prefix";
+        
+        await using var command = _dataSource.CreateCommand(sql);
+        command.Parameters.AddWithValue("prefix", $"{sourcePrefix}%");
+        
+        await command.ExecuteNonQueryAsync(ct);
     }
 
     public async IAsyncEnumerable<DocumentRecord> SearchAsync(ReadOnlyMemory<float> embedding, int limit)

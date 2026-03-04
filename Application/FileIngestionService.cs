@@ -1,5 +1,6 @@
 using Documind.Application.Abstractions;
 using Documind.Application.Models;
+using Documind.Domain;
 using System.Text.RegularExpressions;
 using org.apache.tika.metadata;
 using org.apache.tika.parser;
@@ -13,11 +14,13 @@ public partial class FileIngestionService(
     IIngestionService ingestionService,
     IIngestionJobQueue jobQueue,
     IJobStatusService jobStatusService,
+    IDocumentRepository documentRepository,
     ILogger<FileIngestionService> logger) : IFileIngestionService
 {
     private readonly IIngestionService _ingestionService = ingestionService;
     private readonly IIngestionJobQueue _jobQueue = jobQueue;
     private readonly IJobStatusService _jobStatusService = jobStatusService;
+    private readonly IDocumentRepository _documentRepository = documentRepository;
     private readonly ILogger<FileIngestionService> _logger = logger;
     private const int MaxChunkSize = 512;
     private const int Overlap = 128;
@@ -52,7 +55,10 @@ public partial class FileIngestionService(
         {
             await _jobStatusService.SetStatusAsync(jobId, new JobStatusResponse(jobId, originalFileName, JobStatus.Processing), ct);
 
-            var text = await ExtractTextAsync(filePath);
+            _logger.LogInformation("Cleaning existing chunks for {Source}", originalFileName);
+            await _documentRepository.DeleteBySourcePrefixAsync(originalFileName, ct);
+
+            var text = await ExtractTextAsync(filePath, originalFileName);
 
             if (string.IsNullOrWhiteSpace(text))
             {
@@ -88,8 +94,16 @@ public partial class FileIngestionService(
         }
     }
 
-    private async Task<string> ExtractTextAsync(string filePath)
+    private async Task<string> ExtractTextAsync(string filePath, string originalFileName)
     {
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+
+        if (extension == ".txt")
+        {
+            _logger.LogInformation("Processing plain text file: {FilePath}", filePath);
+            return await File.ReadAllTextAsync(filePath);
+        }
+
         return await Task.Run(() =>
         {
             try

@@ -11,3 +11,5 @@ CREATE TABLE documents (
 
 CREATE INDEX ON documents 
 USING hnsw (embedding vector_cosine_ops);
+
+CREATE INDEX idx_documents_source ON documents (source);

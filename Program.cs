@@ -7,6 +7,7 @@ using Documind.Domain;
 using Documind.Infrastructure;
 using Documind.Application.Abstractions;
 using Documind.Application.Models;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,7 @@ builder.Services.AddGoogleAIEmbeddingGenerator(modelId: "gemini-embedding-001", 
 string connString = builder.Configuration.GetConnectionString("Postgres")
                     ?? throw new Exception("Postgres connection string not defined");
 
+builder.Services.AddSingleton(NpgsqlDataSource.Create(connString));
 builder.Services.AddPostgresVectorStore(connString);
 
 builder.Services.AddEndpointsApiExplorer();
